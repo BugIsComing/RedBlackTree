@@ -1,0 +1,8 @@
+#文件夹后面需要跟/
+.idea/
+target/
+.classpath
+.settings/
+.project
+*.iml
+*.class
