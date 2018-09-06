@@ -1,5 +1,7 @@
 package com.lc.redblacktree;
 
+import sun.reflect.generics.tree.Tree;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,7 +63,7 @@ public class RedBlackTree {
      *
      * @return
      */
-    public int getHeight(){
+    public int getHeight() {
         return getHeight(getRoot());
     }
 
@@ -113,15 +115,13 @@ public class RedBlackTree {
     /********中序遍历获取所有的value*******/
     /**
      * 中序遍历将value放入List，利用红黑树排序
-     *
-     * @param current
-     * @param data
      */
-    public List<Integer> inOrder(){
+    public List<Integer> inOrder() {
         List<Integer> data = new ArrayList<>();
-        inOrder(getRoot(),data);
+        inOrder(getRoot(), data);
         return data;
     }
+
     private void inOrder(TreeNode current, List<Integer> data) {
         if (data == null) {
             data = new ArrayList<Integer>();
@@ -175,7 +175,7 @@ public class RedBlackTree {
         /**
          * 调整颜色或者旋转,如果不调用adjust，就是一般的二叉查找树
          */
-        adjust(current);
+        adjust_insert(current);
     }
 
     /**
@@ -183,7 +183,7 @@ public class RedBlackTree {
      *
      * @param current
      */
-    public void adjust(TreeNode current) {
+    public void adjust_insert(TreeNode current) {
         /**
          * case1：插入节点无父节点，只需要将color设置为黑色即可
          */
@@ -203,13 +203,14 @@ public class RedBlackTree {
          *
          **/
         /**
-         * case3：current的叔叔节点uncle为红色，将parent和uncle设置为黑色，grandpa设置为红色，然后在从grandPa节点开始重新调整
+         * case3：current的叔叔节点uncle为红色，无论current位于parent的左右都满足该case，
+         * 将parent和uncle设置为黑色，grandpa设置为红色，然后在从grandPa节点开始重新调整
          */
         if (uncleNode(current) != null && uncleNode(current).getColor() == Color.RED) {
             current.getParent().setColor(Color.BLACK);
             uncleNode(current).setColor(Color.BLACK);
             grandPaNode(current).setColor(Color.RED);
-            adjust(grandPaNode(current));
+            adjust_insert(grandPaNode(current));
             return;
         }
         /**
@@ -260,7 +261,66 @@ public class RedBlackTree {
 
         }
     }
+    /*********************删除操作*****************************/
+    /**
+     * 删除任何一个节点，无论其子节点个数为0,1,2，都可以转换为删除一个最多有一个非叶子节点的node
+     *
+     * @param value
+     */
+    public void delete(final int value) {
+        TreeNode current = getNode(value);
+        if (current == null) {
+            System.out.println("不存在该value，无法删除");
+            return;
+        }
+        /**
+         * curren的左右节点都不为null，则找到current左子树中最大的节点
+         */
+        if (current.getLeft() != null && current.getRight() != null) {
+            TreeNode temp = current.getLeft();
+            //左子树最右的节点即为值最大的节点
+            while (temp.getRight() != null) {
+                temp = temp.getRight();
+            }
+            current.setValue(temp.getValue());
+            current = temp;
+        }
+        adjust_delete(current);
+    }
 
+    /**
+     * 删除节点时的调整操作，current最多有一个非叶子节点
+     *
+     * @param current
+     */
+    public void adjust_delete(TreeNode current) {
+        /**
+         * case1:如果current为red节点，直接用current的非叶子节点顶替current即可
+         * current为red节点，则必有parent节点
+         */
+        if (current.getColor() == Color.RED) {
+            TreeNode parent = current.getParent();
+            TreeNode child = null;
+            if (current.getLeft()!=null){
+                child = current.getLeft();
+            }else{
+                child = current.getRight();
+            }
+            if(parent.getLeft() == current){
+                parent.setLeft(child);
+            }else{
+                parent.setRight(child);
+            }
+            child.setParent(parent);
+            current.setParent(null);
+            current.setRight(null);
+            current.setLeft(null);
+            return;
+        }
+    }
+
+
+    /*********************左旋转、右旋转***********************/
     /**
      * 左旋转,此处的左旋转是指将current作为中心，将current的parent置为current的left，原有的current的left置为parent的right，current会作为其grandpa的一个子节点
      *
