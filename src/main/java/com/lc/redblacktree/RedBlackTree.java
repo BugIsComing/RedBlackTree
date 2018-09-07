@@ -93,6 +93,45 @@ public class RedBlackTree {
     }
 
     /**
+     * 获取current的兄弟节点
+     *
+     * @param current
+     * @return
+     */
+    public TreeNode siblingNode(TreeNode current) {
+        if (current == null) {
+            return null;
+        }
+        if (current.getParent() == null) {
+            return null;
+        }
+        if (current.getParent().getLeft() == current) {
+            return current.getParent().getRight();
+        } else {
+            return current.getParent().getLeft();
+        }
+    }
+
+    /**
+     * 获取current子节点
+     * 如果左右节点非空，返回left
+     *
+     * @param current
+     * @return
+     */
+    public TreeNode getChild(TreeNode current) {
+        if (current != null) {
+            if (current.getLeft() != null) {
+                return current.getLeft();
+            } else {
+                return current.getRight();
+            }
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * 递归获取值
      *
      * @param current
@@ -289,32 +328,57 @@ public class RedBlackTree {
     }
 
     /**
-     * 删除节点时的调整操作，current最多有一个非叶子节点
+     * 删除节点时的调整操作，current最多有一个非叶子节点,如果current没有非叶子节点，可以将任意一个null节点作为其子节点，
+     * 因此此处的调整只需要针对current有一个非叶子节点情况
      *
      * @param current
      */
     public void adjust_delete(TreeNode current) {
+        if (current == null) {
+            return;
+        }
         /**
          * case1:如果current为red节点，直接用current的非叶子节点顶替current即可
-         * current为red节点，则必有parent节点
+         * current为red节点，则必有parent节点，但是current的child可能为null
          */
         if (current.getColor() == Color.RED) {
             TreeNode parent = current.getParent();
             TreeNode child = null;
-            if (current.getLeft()!=null){
+            if (current.getLeft() != null) {
                 child = current.getLeft();
-            }else{
+            } else {
                 child = current.getRight();
             }
-            if(parent.getLeft() == current){
+            if (parent.getLeft() == current) {
                 parent.setLeft(child);
-            }else{
+            } else {
                 parent.setRight(child);
             }
+            if (child != null) {
+                child.setParent(parent);
+            }
+            setNull(current);
+            return;
+        }
+        /**
+         * case2:如果current为black，current的child非空且为red，只需要将current的parent指向child，将child设置为black
+         * current的parent可能为null
+         */
+        if (current.getColor() == Color.BLACK && getChild(current) != null && getChild(current).getColor() == Color.RED) {
+            TreeNode parent = current.getParent();
+            TreeNode child = getChild(current);
             child.setParent(parent);
-            current.setParent(null);
-            current.setRight(null);
-            current.setLeft(null);
+            child.setColor(Color.BLACK);
+            if (parent == null) {
+                root = child;
+            } else {
+                if (parent.getLeft() == current) {
+                    parent.setLeft(child);
+                } else {
+                    parent.setRight(child);
+                }
+            }
+            setNull(current);
             return;
         }
     }
@@ -386,6 +450,19 @@ public class RedBlackTree {
             } else {
                 grandpa.setLeft(current);
             }
+        }
+    }
+
+    /**
+     * 将给定节点left，right，parent设置为null
+     *
+     * @param current
+     */
+    public void setNull(TreeNode current) {
+        if (current != null) {
+            current.setParent(null);
+            current.setRight(null);
+            current.setLeft(null);
         }
     }
 
