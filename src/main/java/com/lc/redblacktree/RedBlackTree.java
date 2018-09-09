@@ -219,6 +219,7 @@ public class RedBlackTree {
 
     /**
      * 调整分为多个case
+     * 递归思路就是枚举Parent，Uncle，grandPa的各种颜色状况
      *
      * @param current
      */
@@ -279,7 +280,6 @@ public class RedBlackTree {
                 rotateRight(current);
                 current.setColor(Color.BLACK);
                 current.getRight().setColor(Color.RED);
-                current.getLeft().setColor(Color.RED);
             } else if (current.getParent() == grandPaNode(current).getRight() && current == current.getParent().getLeft()) {
                 /**
                  * case4.3
@@ -287,7 +287,6 @@ public class RedBlackTree {
                 rotateRight(current);
                 rotateLeft(current);
                 current.setColor(Color.BLACK);
-                current.getRight().setColor(Color.RED);
                 current.getLeft().setColor(Color.RED);
             } else if (current.getParent() == grandPaNode(current).getRight() && current == current.getParent().getRight()) {
                 /**
@@ -303,7 +302,8 @@ public class RedBlackTree {
     /*********************删除操作*****************************/
     /**
      * 删除任何一个节点，无论其子节点个数为0,1,2，都可以转换为删除一个最多有一个非叶子节点的node
-     *
+     * 参考：https://segmentfault.com/a/1190000012115424
+     * 动画：https://www.cs.usfca.edu/~galles/visualization/RedBlack.html
      * @param value
      */
     public void delete(final int value) {
@@ -313,7 +313,8 @@ public class RedBlackTree {
             return;
         }
         /**
-         * curren的左右节点都不为null，则找到current左子树中最大的节点
+         * current的左右节点都不为null，则找到current左子树中最大的节点
+         * 执行完之后，此时current执行将被删除的节点，至多有一个非叶子节点
          */
         if (current.getLeft() != null && current.getRight() != null) {
             TreeNode temp = current.getLeft();
@@ -324,19 +325,27 @@ public class RedBlackTree {
             current.setValue(temp.getValue());
             current = temp;
         }
+        /**
+         * 判断是否满足最简单的两种case，满足则删除并直接返回，无需递归调整
+         */
+        if (delete_simple_case(current)) {
+            return;
+        }
+        /**
+         * 如果current不满足简单case，则将current删除，用其子节点顶替，然后再调整
+         * 顶替之后current指向向上顶替的节点（也就是原来的子节点）
+         */
+        current = replace(current);
         adjust_delete(current);
     }
 
     /**
-     * 删除节点时的调整操作，current最多有一个非叶子节点,如果current没有非叶子节点，可以将任意一个null节点作为其子节点，
-     * 因此此处的调整只需要针对current有一个非叶子节点情况
+     * 删除节点时的两种简单case，单独将这两个case拎出来是因为无需做递归调整
      *
      * @param current
+     * @return
      */
-    public void adjust_delete(TreeNode current) {
-        if (current == null) {
-            return;
-        }
+    private boolean delete_simple_case(TreeNode current) {
         /**
          * case1:如果current为red节点，直接用current的非叶子节点顶替current即可
          * current为red节点，则必有parent节点，但是current的child可能为null
@@ -358,7 +367,7 @@ public class RedBlackTree {
                 child.setParent(parent);
             }
             setNull(current);
-            return;
+            return true;
         }
         /**
          * case2:如果current为black，current的child非空且为red，只需要将current的parent指向child，将child设置为black
@@ -379,8 +388,98 @@ public class RedBlackTree {
                 }
             }
             setNull(current);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 删除节点时的调整操作，此时的current一定是black，其非空子节点若存在则一定是black
+     * P表示current父节点，S表示current兄弟节点，SL表示S的左节点，SR表示S的右节点
+     * 递归调整,递归调整的思路就是枚举P，S，SL，SR的各种颜色状况
+     *
+     * @param current
+     */
+    public void adjust_delete(TreeNode current) {
+        if (current == null) {
             return;
         }
+        TreeNode parent = current.getParent();
+        /**
+         * case3：parent为空，无需任何调整，
+         */
+        if (parent == null) {
+            return;
+        }
+        /**
+         * 接下来需要考虑如下颜色情况，每一个case中会根据不同情况进行不同旋转
+         *           P  S   SL  SR
+         * case4.1： b  r   b   b
+         * case4.2： b  b   b   b
+         * case4.3： b  b   b   r
+         * case4.4： b  b   r   b
+         * case4.5： b  b   r   r
+         * case4.6： r  b   r   b
+         * case4.7： r  b   r   r
+         * case4.8： r  b   b   b
+         * case4.9： r  b   b   r
+         *
+         */
+        TreeNode sibling = siblingNode(current);
+        /**
+         * case4.1:交换sibling和parent的颜色，然后旋转，旋转之后重新以current开始调整
+         */
+        if (parent.getColor() == Color.BLACK && sibling != null && sibling.getColor() == Color.RED) {
+            parent.setColor(Color.RED);
+            sibling.setColor(Color.BLACK);
+            if (sibling == sibling.getParent().getRight()) {
+                rotateLeft(sibling);
+            } else {
+                rotateRight(sibling);
+            }
+            adjust_delete(current);
+            return;
+        }
+
+    }
+
+    /**
+     * 删除节点current，并用其子节点顶替，current至多有一个非空子节点
+     * 需要处理的case包括，parent是current父节点，child是其子节点
+     * case1：current为null
+     * case2：parent为null，child不为null
+     * case3：parent不为null，child为null；
+     * case4：parent不为null，child不为null；
+     *
+     * @param current
+     * @return 返回顶替之后的节点
+     */
+    public TreeNode replace(TreeNode current) {
+        if (current == null) {
+            return null;
+        }
+        TreeNode parent = current.getParent();
+        TreeNode child = null;
+        if (current.getLeft() != null) {
+            child = current.getLeft();
+        } else {
+            child = current.getRight();
+        }
+        if (parent == null) {
+            root = child;
+        } else {
+            if (parent.getLeft() == current) {
+                parent.setLeft(child);
+            } else {
+                parent.setRight(child);
+            }
+        }
+        //无非空子节点
+        if (child != null) {
+            child.setParent(parent);
+        }
+        setNull(current);
+        return child;
     }
 
 
