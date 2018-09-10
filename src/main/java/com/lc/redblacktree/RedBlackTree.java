@@ -303,6 +303,7 @@ public class RedBlackTree {
     /**
      * 删除任何一个节点，无论其子节点个数为0,1,2，都可以转换为删除一个最多有一个非叶子节点的node
      * 参考：https://segmentfault.com/a/1190000012115424
+     *      https://zhuanlan.zhihu.com/p/25402654
      * 动画：https://www.cs.usfca.edu/~galles/visualization/RedBlack.html
      * @param value
      */
@@ -327,6 +328,9 @@ public class RedBlackTree {
         }
         /**
          * 判断是否满足最简单的两种case，满足则删除并直接返回，无需递归调整
+         * case1：删除节点为red
+         * case2：删除节点为black，子节点为red
+         * 除此之外都进入adjust_delete
          */
         if (delete_simple_case(current)) {
             return;
@@ -334,8 +338,13 @@ public class RedBlackTree {
         /**
          * 如果current不满足简单case，则将current删除，用其子节点顶替，然后再调整
          * 顶替之后current指向向上顶替的节点（也就是原来的子节点）
+         * 此处隐含1、条件current是非空黑色节点；2、current的parent如果存在，则current也必存在一个非空Sibling节点，
+         * 否则不满足红黑树条件
          */
         current = replace(current);
+        /**
+         * 进入adjust_delete的情况包括current非空并且无子节点，
+         */
         adjust_delete(current);
     }
 
@@ -397,7 +406,7 @@ public class RedBlackTree {
      * 删除节点时的调整操作，此时的current一定是black，其非空子节点若存在则一定是black
      * P表示current父节点，S表示current兄弟节点，SL表示S的左节点，SR表示S的右节点
      * 递归调整,递归调整的思路就是枚举P，S，SL，SR的各种颜色状况
-     *
+     * 隐含条件S必定非空
      * @param current
      */
     public void adjust_delete(TreeNode current) {
@@ -445,11 +454,7 @@ public class RedBlackTree {
 
     /**
      * 删除节点current，并用其子节点顶替，current至多有一个非空子节点
-     * 需要处理的case包括，parent是current父节点，child是其子节点
-     * case1：current为null
-     * case2：parent为null，child不为null
-     * case3：parent不为null，child为null；
-     * case4：parent不为null，child不为null；
+     * 如果current无子节点，直接返回current，不做替换
      *
      * @param current
      * @return 返回顶替之后的节点
@@ -464,6 +469,12 @@ public class RedBlackTree {
             child = current.getLeft();
         } else {
             child = current.getRight();
+        }
+        /**
+         * 如果current没有子节点，返回current
+         */
+        if(child == null){
+            return current;
         }
         if (parent == null) {
             root = child;
