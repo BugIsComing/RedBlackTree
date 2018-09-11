@@ -1,5 +1,6 @@
 package com.lc.redblacktree;
 
+import com.sun.corba.se.spi.transport.CorbaAcceptor;
 import sun.reflect.generics.tree.Tree;
 
 import java.util.ArrayList;
@@ -303,8 +304,9 @@ public class RedBlackTree {
     /**
      * 删除任何一个节点，无论其子节点个数为0,1,2，都可以转换为删除一个最多有一个非叶子节点的node
      * 参考：https://segmentfault.com/a/1190000012115424
-     *      https://zhuanlan.zhihu.com/p/25402654
+     * https://zhuanlan.zhihu.com/p/25402654
      * 动画：https://www.cs.usfca.edu/~galles/visualization/RedBlack.html
+     *
      * @param value
      */
     public void delete(final int value) {
@@ -337,15 +339,23 @@ public class RedBlackTree {
         }
         /**
          * 如果current不满足简单case，则将current删除，用其子节点顶替，然后再调整
-         * 顶替之后current指向向上顶替的节点（也就是原来的子节点）
+         * 顶替之后current指向向上顶替的节点（也就是原来的子节点,可能current为null，即使current为null，也当做黑色节点）
          * 此处隐含1、条件current是非空黑色节点；2、current的parent如果存在，则current也必存在一个非空Sibling节点，
          * 否则不满足红黑树条件
          */
+        TreeNode parent = current.getParent();
+        TreeNode sibling = siblingNode(current);
+        boolean flag = false;
+        if(parent.getRight() == current){
+            flag = false;
+        }else{
+            flag = true;
+        }
         current = replace(current);
         /**
-         * 进入adjust_delete的情况包括current非空并且无子节点，
+         * 进入adjust_delete的情况包括current可能为null，如果为null就当做黑色节点
          */
-        adjust_delete(current);
+        adjust_delete(current,parent,sibling,flag);
     }
 
     /**
@@ -359,7 +369,7 @@ public class RedBlackTree {
          * case1:如果current为red节点，直接用current的非叶子节点顶替current即可
          * current为red节点，则必有parent节点，但是current的child可能为null
          */
-        if (current.getColor() == Color.RED) {
+        if (current != null && current.getColor() == Color.RED) {
             TreeNode parent = current.getParent();
             TreeNode child = null;
             if (current.getLeft() != null) {
@@ -403,20 +413,15 @@ public class RedBlackTree {
     }
 
     /**
-     * 删除节点时的调整操作，此时的current一定是black，其非空子节点若存在则一定是black
+     * 删除节点时的调整操作
      * P表示current父节点，S表示current兄弟节点，SL表示S的左节点，SR表示S的右节点
      * 递归调整,递归调整的思路就是枚举P，S，SL，SR的各种颜色状况
      * 隐含条件S必定非空
+     * flag = false 表示current是parent做解答，否则为右节点
      * @param current
      */
-    public void adjust_delete(TreeNode current) {
-        if (current == null) {
-            return;
-        }
-        TreeNode parent = current.getParent();
-        /**
-         * case3：parent为空，无需任何调整，
-         */
+    public void adjust_delete(TreeNode current, TreeNode parent, TreeNode sibling,boolean flag) {
+        //current为根节点
         if (parent == null) {
             return;
         }
@@ -434,20 +439,21 @@ public class RedBlackTree {
          * case4.9： r  b   b   r
          *
          */
-        TreeNode sibling = siblingNode(current);
         /**
-         * case4.1:交换sibling和parent的颜色，然后旋转，旋转之后重新以current开始调整
+         * case4.8:sibling一定是非空的节点,因为sibling是current顶替节点之前current'的兄弟节点,由于current'是黑色，因此不管parent是什么颜色，sibling必定非空
+         * 交换parent和sibling的颜色后达到平衡
          */
-        if (parent.getColor() == Color.BLACK && sibling != null && sibling.getColor() == Color.RED) {
-            parent.setColor(Color.RED);
-            sibling.setColor(Color.BLACK);
-            if (sibling == sibling.getParent().getRight()) {
-                rotateLeft(sibling);
-            } else {
-                rotateRight(sibling);
+        if (parent.getColor() == Color.RED) {
+            if ((sibling.getLeft() == null || sibling.getLeft().getColor() == Color.BLACK) && (sibling
+                    .getRight() == null || sibling.getRight().getColor() == Color.BLACK)) {
+                parent.setColor(Color.BLACK);
+                sibling.setColor(Color.RED);
+                return;
             }
-            adjust_delete(current);
-            return;
+        }
+
+        if(sibling.getColor() == Color.BLACK){
+
         }
 
     }
@@ -457,7 +463,7 @@ public class RedBlackTree {
      * 如果current无子节点，直接返回current，不做替换
      *
      * @param current
-     * @return 返回顶替之后的节点
+     * @return 返回顶替之后的父节点，current设置为需要调整的节点
      */
     public TreeNode replace(TreeNode current) {
         if (current == null) {
@@ -469,12 +475,6 @@ public class RedBlackTree {
             child = current.getLeft();
         } else {
             child = current.getRight();
-        }
-        /**
-         * 如果current没有子节点，返回current
-         */
-        if(child == null){
-            return current;
         }
         if (parent == null) {
             root = child;
