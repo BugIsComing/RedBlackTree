@@ -306,10 +306,26 @@ public class RedBlackTree {
      * 参考：https://segmentfault.com/a/1190000012115424
      * https://zhuanlan.zhihu.com/p/25402654
      * 动画：https://www.cs.usfca.edu/~galles/visualization/RedBlack.html
-     *
+     * 假设要删除节点为current（原始节点，未被替换的，且current至多有一个非空子节点），父节点为parent，子节点为child，兄弟节点为sibling，兄弟节点的子节点为sl，sr，删除操作需要分如下case：
+     * *****case1：current为red，直接删除current，parent指向child，child指向parent即可；
+     * *****case2：current为black，child为red（说明child一定不是null），删除current，child设置为black即可
+     * 如果不足case1，case2时，current一定是black，因此以下情况前提是current非null且是black
+     * *****case3：parent为null，这种情况只可能是current是black，child非null，则child为red，child的左右节点都为null；或者current为black，child为null。
+     * 因为如果child为red，在case2就被处理了。此时current就是根节点root，即current==root，将root设置为null即完成删除操作
+     * 如果不满足case3，则一定有parent不为null，则以下情况前提是current非null且是black，parent非null，由此可推出sibling一定非null，否则不满足红黑树性质，sl,sr可为空也可非空，sl，sr为null时被当做black
+     * 在进行操作之前用child替换current，current为新的节点（原来的child），如果current是parent的左子节点，记为PL，反之记为PR
+     * *****case4：parent为red，sibling为black，sl，sr都为black（为null也当做black），将parent和sibling颜色交换即完成所有操作
+     * *****case5：current为parent的PL，sibling为black，且sr为red，parent可红可黑，sl可红可黑，然后以sibling为中心，parent左旋转，并交换sibling和parent颜色，并将sr置为black
+     * *****case6：（case5的镜像）current是parent的PR，sibling是black，sl是red，parent可红可黑，sr可红可黑，然后以sibling为中心，parent右旋转，并交换sibling和parent颜色，并将sl置为black
+     * *****case7：current为parent的PL，sibling为black，且sl为red，parent可红可黑，sr可红可黑，先sl为中心，sibling右旋转，并交换sl和sibling颜色，然后调用case5
+     * *****case8：（case7的镜像）current为parent的PR，sibling为black，且sr为red，parent可红可黑，sl可红可黑，先sr为中心，sibling左旋转，并交换sr和sibling颜色，然后调用case6
+     * *****case9：current为parent的PL，sibling为red，
      * @param value
      */
     public void delete(final int value) {
+        /**
+         * 红黑树中，如果一个black节点只有一个非空子节点，那一定只有一种情况就是该节点是black，child为red，child子节点都为null
+         */
         TreeNode current = getNode(value);
         if (current == null) {
             System.out.println("不存在该value，无法删除");
@@ -346,16 +362,16 @@ public class RedBlackTree {
         TreeNode parent = current.getParent();
         TreeNode sibling = siblingNode(current);
         boolean flag = false;
-        if(parent.getRight() == current){
+        if (parent.getRight() == current) {
             flag = false;
-        }else{
+        } else {
             flag = true;
         }
         current = replace(current);
         /**
          * 进入adjust_delete的情况包括current可能为null，如果为null就当做黑色节点
          */
-        adjust_delete(current,parent,sibling,flag);
+        adjust_delete(current, parent, sibling, flag);
     }
 
     /**
@@ -418,9 +434,10 @@ public class RedBlackTree {
      * 递归调整,递归调整的思路就是枚举P，S，SL，SR的各种颜色状况
      * 隐含条件S必定非空
      * flag = false 表示current是parent做解答，否则为右节点
+     *
      * @param current
      */
-    public void adjust_delete(TreeNode current, TreeNode parent, TreeNode sibling,boolean flag) {
+    public void adjust_delete(TreeNode current, TreeNode parent, TreeNode sibling, boolean flag) {
         //current为根节点
         if (parent == null) {
             return;
@@ -452,7 +469,7 @@ public class RedBlackTree {
             }
         }
 
-        if(sibling.getColor() == Color.BLACK){
+        if (sibling.getColor() == Color.BLACK) {
 
         }
 
