@@ -319,7 +319,10 @@ public class RedBlackTree {
      * *****case6：（case5的镜像）current是parent的PR，sibling是black，sl是red，parent可红可黑，sr可红可黑，然后以sibling为中心，parent右旋转，并交换sibling和parent颜色，并将sl置为black
      * *****case7：current为parent的PL，sibling为black，且sl为red，parent可红可黑，sr可红可黑，先sl为中心，sibling右旋转，并交换sl和sibling颜色，然后调用case5
      * *****case8：（case7的镜像）current为parent的PR，sibling为black，且sr为red，parent可红可黑，sl可红可黑，先sr为中心，sibling左旋转，并交换sr和sibling颜色，然后调用case6
-     * *****case9：current为parent的PL，sibling为red，
+     * *****case9：current为parent的PL，sibling为red，以sibling为中心，parent左旋转，并交换sibling和parent颜色，然后按照case4处理
+     * *****case10：current为parent的PR，sibling为red，以sibling为中心，parent右旋转，并交换sibling和parent颜色，然后按照case4处理
+     * *****case11：current为black，parent为black，sibling为black，sl，sr都为black（为null也当做black），将sibling设置为红色，再以parent节点递归调整
+     *
      * @param value
      */
     public void delete(final int value) {
@@ -361,9 +364,16 @@ public class RedBlackTree {
          */
         TreeNode parent = current.getParent();
         TreeNode sibling = siblingNode(current);
+        /**
+         * case3
+         */
+        if (parent == null) {
+            root = null;
+            return;
+        }
         boolean flag = false;
         if (parent.getRight() == current) {
-            flag = false;
+            flag = false;//右子树
         } else {
             flag = true;
         }
@@ -438,39 +448,25 @@ public class RedBlackTree {
      * @param current
      */
     public void adjust_delete(TreeNode current, TreeNode parent, TreeNode sibling, boolean flag) {
-        //current为根节点
-        if (parent == null) {
-            return;
-        }
         /**
-         * 接下来需要考虑如下颜色情况，每一个case中会根据不同情况进行不同旋转
-         *           P  S   SL  SR
-         * case4.1： b  r   b   b
-         * case4.2： b  b   b   b
-         * case4.3： b  b   b   r
-         * case4.4： b  b   r   b
-         * case4.5： b  b   r   r
-         * case4.6： r  b   r   b
-         * case4.7： r  b   r   r
-         * case4.8： r  b   b   b
-         * case4.9： r  b   b   r
-         *
+         * case4:parent为red，sibling为black，sl，sr都为black（为null也当做black）
          */
-        /**
-         * case4.8:sibling一定是非空的节点,因为sibling是current顶替节点之前current'的兄弟节点,由于current'是黑色，因此不管parent是什么颜色，sibling必定非空
-         * 交换parent和sibling的颜色后达到平衡
-         */
-        if (parent.getColor() == Color.RED) {
-            if ((sibling.getLeft() == null || sibling.getLeft().getColor() == Color.BLACK) && (sibling
-                    .getRight() == null || sibling.getRight().getColor() == Color.BLACK)) {
+        if (parent != null && parent.getColor() == Color.RED && sibling != null && sibling.getColor() == Color.BLACK) {
+            if ((sibling.getLeft() == null || sibling.getLeft().getColor() == Color.BLACK) && (sibling.getRight() == null || sibling.getRight().getColor() == Color.BLACK)) {
                 parent.setColor(Color.BLACK);
                 sibling.setColor(Color.RED);
                 return;
             }
         }
-
-        if (sibling.getColor() == Color.BLACK) {
-
+        /**
+         * case5:current为parent的PL，sibling为black，且sr为red，parent可红可黑，sl可红可黑
+         */
+        if (flag && sibling != null && sibling.getColor() == Color.BLACK && sibling.getRight() != null && sibling.getRight().getColor() == Color.RED) {
+            sibling.setColor(parent.getColor());
+            parent.setColor(Color.BLACK);
+            sibling.getRight().setColor(Color.RED);
+            rotateLeft(sibling);
+            return;
         }
 
     }
