@@ -655,7 +655,7 @@ public class RedBlackTree {
 
     /**
      * 将给定节点left，right，parent设置为null
-     *
+     * 有助于垃圾回收GC
      * @param current
      */
     public void setNull(TreeNode current) {
