@@ -1,10 +1,9 @@
 package com.lc.redblacktree;
 
-import com.sun.corba.se.spi.transport.CorbaAcceptor;
-import sun.reflect.generics.tree.Tree;
-
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * @author lc
@@ -320,7 +319,7 @@ public class RedBlackTree {
      * *****case7：current为parent的PL，sibling为black，且sl为red，parent可红可黑，sr可红可黑，先sl为中心，sibling右旋转，并交换sl和sibling颜色，然后调用case5
      * *****case8：（case7的镜像）current为parent的PR，sibling为black，且sr为red，parent可红可黑，sl可红可黑，先sr为中心，sibling左旋转，并交换sr和sibling颜色，然后调用case6
      * *****case9：current为parent的PL，sibling为red，以sibling为中心，parent左旋转，并交换sibling和parent颜色，然后按照case4处理
-     * *****case10：current为parent的PR，sibling为red，以sibling为中心，parent右旋转，并交换sibling和parent颜色，然后按照case4处理
+     * *****case10：(case9的镜像)current为parent的PR，sibling为red，以sibling为中心，parent右旋转，并交换sibling和parent颜色，然后按照case4处理
      * *****case11：current为black，parent为black，sibling为black，sl，sr都为black（为null也当做black），将sibling设置为红色，再以parent节点递归调整
      *
      * @param value
@@ -448,11 +447,14 @@ public class RedBlackTree {
      * @param current
      */
     public void adjust_delete(TreeNode current, TreeNode parent, TreeNode sibling, boolean flag) {
+        if (parent == null) {
+            return;
+        }
         /**
          * case4:parent为red，sibling为black，sl，sr都为black（为null也当做black）
          */
-        if (parent != null && parent.getColor() == Color.RED && sibling != null && sibling.getColor() == Color.BLACK) {
-            if ((sibling.getLeft() == null || sibling.getLeft().getColor() == Color.BLACK) && (sibling.getRight() == null || sibling.getRight().getColor() == Color.BLACK)) {
+        if (parent.getColor() == Color.RED && sibling != null && sibling.getColor() == Color.BLACK) {
+            if (isBlackNode(sibling.getLeft()) && isBlackNode(sibling.getRight())) {
                 parent.setColor(Color.BLACK);
                 sibling.setColor(Color.RED);
                 return;
@@ -464,8 +466,83 @@ public class RedBlackTree {
         if (flag && sibling != null && sibling.getColor() == Color.BLACK && sibling.getRight() != null && sibling.getRight().getColor() == Color.RED) {
             sibling.setColor(parent.getColor());
             parent.setColor(Color.BLACK);
-            sibling.getRight().setColor(Color.RED);
+            sibling.getRight().setColor(Color.BLACK);
             rotateLeft(sibling);
+            return;
+        }
+        /**
+         * case6：（case5的镜像）current是parent的PR，sibling是black，sl是red，parent可红可黑，sr可红可黑
+         */
+        if (!flag && sibling != null && sibling.getColor() == Color.BLACK && sibling.getLeft() != null && sibling.getLeft().getColor() == Color.RED) {
+            sibling.setColor(parent.getColor());
+            parent.setColor(Color.BLACK);
+            sibling.getLeft().setColor(Color.BLACK);
+            rotateRight(sibling);
+            return;
+        }
+        /**
+         * case7:current为parent的PL，sibling为black，且sl为red，parent可红可黑，sr可红可黑
+         */
+        if (flag && sibling != null && sibling.getColor() == Color.BLACK && sibling.getLeft() != null && sibling.getLeft().getColor() == Color.RED) {
+            sibling.setColor(Color.RED);
+            sibling.getLeft().setColor(Color.BLACK);
+            TreeNode temp = sibling.getLeft();
+            rotateRight(temp);
+            adjust_delete(current, parent, temp, true);
+            return;
+        }
+        /**
+         * case8:（case7的镜像）current为parent的PR，sibling为black，且sr为red，parent可红可黑，sl可红可黑
+         */
+        if (!flag && sibling != null && sibling.getColor() == Color.BLACK && sibling.getRight() != null && sibling.getRight().getColor() == Color.RED) {
+            sibling.setColor(Color.RED);
+            sibling.getRight().setColor(Color.BLACK);
+            TreeNode temp = sibling.getRight();
+            rotateLeft(temp);
+            adjust_delete(current, parent, temp, false);
+            return;
+        }
+        /**
+         * case9：current为parent的PL，sibling为red
+         */
+        if (flag && sibling != null && sibling.getColor() == Color.RED) {
+            sibling.setColor(parent.getColor());
+            parent.setColor(Color.RED);
+            rotateLeft(sibling);
+            adjust_delete(current, parent, sibling.getLeft(), true);
+            return;
+        }
+        /**
+         * case10：(case9的镜像)current为parent的PR，sibling为red
+         */
+        if (!flag && sibling != null && sibling.getColor() == Color.RED) {
+            sibling.setColor(parent.getColor());
+            parent.setColor(Color.RED);
+            rotateRight(sibling);
+            adjust_delete(current, parent, sibling.getRight(), false);
+            return;
+        }
+        /**
+         * case11：current为black，parent为black，sibling为black，sl，sr都为black（为null也当做black）
+         */
+        if (parent.getColor() == Color.BLACK && sibling != null && sibling.getColor() == Color.BLACK && isBlackNode(sibling.getLeft()) && isBlackNode(sibling.getRight())) {
+            sibling.setColor(Color.RED);
+            TreeNode tempParent = parent.getParent();
+            TreeNode tempSibling = null;
+            boolean tempFlag = false;
+            if (tempParent != null) {
+                if (tempParent.getRight() == parent) {
+                    tempSibling = tempParent.getLeft();
+                    tempFlag = false;
+                } else {
+                    tempSibling = tempParent.getRight();
+                    tempFlag = true;
+                }
+            } else {
+                tempFlag = true;
+                tempSibling = null;
+            }
+            adjust_delete(parent, tempParent, tempSibling, tempFlag);
             return;
         }
 
@@ -586,6 +663,42 @@ public class RedBlackTree {
             current.setParent(null);
             current.setRight(null);
             current.setLeft(null);
+        }
+    }
+
+    private boolean isBlackNode(TreeNode current) {
+        if (current == null || current.getColor() == Color.BLACK) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 广度优先遍历打印节点
+     */
+    public void BFSPrint() {
+        if (getRoot() == null) {
+            System.out.println("RedBlackTree is empty");
+            return;
+        }
+        Queue<TreeNode> queue = new LinkedList<TreeNode>();
+        queue.offer(getRoot());
+        queue.offer(null);
+        while (queue.size() > 1) {
+            TreeNode temp = queue.poll();
+            if (temp == null) {
+                System.out.print("\n");
+                queue.offer(null);
+                continue;
+            }
+            if (temp.getLeft() != null) {
+                queue.offer(temp.getLeft());
+            }
+            if (temp.getRight() != null) {
+                queue.offer(temp.getRight());
+            }
+            System.out.print(temp.toString());
+            System.out.print("  ");
         }
     }
 

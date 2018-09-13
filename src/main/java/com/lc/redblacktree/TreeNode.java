@@ -92,6 +92,6 @@ public class TreeNode {
 
     @Override
     public String toString() {
-        return "value:" + this.value + "parent:" + (parent == null ? "null" : parent.getValue());
+        return "{value:" + this.value + " parent:" + (parent == null ? "null" : parent.getValue()) + " color:" + getColor().toString() + "}";
     }
 }
