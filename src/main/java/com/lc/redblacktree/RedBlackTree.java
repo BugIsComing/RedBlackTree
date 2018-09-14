@@ -8,10 +8,11 @@ import java.util.Queue;
 /**
  * @author lc
  * 红黑树性质
- * 节点是红色或黑色。
- * 根是黑色。
- * 所有叶子都是黑色（叶子是NIL节点）。、每个红色节点必须有两个黑色的子节点。（从每个叶子到根的所有路径上不能有两个连续的红色节点。）
- * 从任一节点到其每个叶子的所有简单路径都包含相同数目的黑色节点。
+ * *****节点是红色或黑色。
+ * *****根是黑色。
+ * *****所有叶子都是黑色（叶子是NIL节点）。
+ * *****每个红色节点必须有两个黑色的子节点。（从每个叶子到根的所有路径上不能有两个连续的红色节点。）
+ * *****从任一节点到其每个叶子的所有简单路径都包含相同数目的黑色节点。
  */
 public class RedBlackTree {
     /**
@@ -220,8 +221,17 @@ public class RedBlackTree {
     /**
      * 调整分为多个case
      * 递归思路就是枚举Parent，Uncle，grandPa的各种颜色状况
+     * 调整分为如下几个case
+     * *****case1：parent为null，将parent设置为black，到此调整结束；
+     * *****case2：parent为black，无需其他操作直接返回
+     * *****case3：parent为red，则grandPa一定存在且为black，uncle可红可黑可null，这种情况需要继续分如下
+     * ********case3.1：uncle为red，则将parent和uncle置为black，grandpa置为red，重新对grandpa进行调整；
+     * ********case3.2：uncle为black或者null，parent是grandpa的左节点，current是parent左节点，以parent为中心，grandpa右旋转，并交换parent和grandpa颜色，到此调整结束；
+     * ********case3.3：uncle为black或者null，parent是grandpa的左节点，current是parent右节点，以current为中心，parent左旋转，旋转之后变为case3.2；
+     * ********case3.4：uncle为black或者null，parent是grandpa的右节点，current是parent右节点，以parent为中心，grandpa左旋转，并交换parent和grandpa颜色，到此调整结束；
+     * ********case3.5：uncle为black或者null，parent是grandpa的右节点，current是parent左节点，以current为中心，parent右旋转，旋转之后变为case3.4；
      *
-     * @param current
+     * @param current 非null
      */
     public void adjust_insert(TreeNode current) {
         /**
@@ -238,43 +248,32 @@ public class RedBlackTree {
             return;
         }
         /**
-         * 接下来的所有父节点都是红色的，也就是说current必有祖父节点grandPa，grandPa是黑色，因此current存在叔叔节点uncle
-         * uncle节点可能为黑色，也可能是红色
-         *
-         **/
-        /**
-         * case3：current的叔叔节点uncle为红色，无论current位于parent的左右都满足该case，
-         * 将parent和uncle设置为黑色，grandpa设置为红色，然后在从grandPa节点开始重新调整
+         * case3.1：parent和uncle都为red
+         * grandpa一定非null
          */
         if (uncleNode(current) != null && uncleNode(current).getColor() == Color.RED) {
+            /**
+             * 此处先调色，这样代码更少
+             */
             current.getParent().setColor(Color.BLACK);
             uncleNode(current).setColor(Color.BLACK);
             grandPaNode(current).setColor(Color.RED);
             adjust_insert(grandPaNode(current));
             return;
         }
-        /**
-         * case4：current的叔叔节点uncle为黑色或者为null，在如此条件下需要分如下四个case
-         * case4.1：current的parent是grandpa的左节点，current是parent的左节点，则以parent为中心右旋转，并调整颜色
-         * case4.2：current的parent是grandpa的左节点，current是parent的右节点，先左旋转，然后右旋转，并调整调整
-         * case4.3：current的parent是grandpa的右节点，current是parent的左节点，先右旋转，然后左旋转，并调整调整
-         * case4.4：current的parent是grandpa的右节点，current是parent的右节点，则以parent为中心左旋转，并调整颜色
-         */
+
         if (uncleNode(current) == null || uncleNode(current).getColor() == Color.BLACK) {
             /**
-             * case4.1
+             * case3.1
              */
             if (current.getParent() == grandPaNode(current).getLeft() && current == current.getParent().getLeft()) {
-                /**
-                 * 此处先调色，这样代码更少
-                 */
                 current.getParent().setColor(Color.BLACK);
                 grandPaNode(current).setColor(Color.RED);
                 rotateRight(current.getParent());
 
             } else if (current.getParent() == grandPaNode(current).getLeft() && current == current.getParent().getRight()) {
                 /**
-                 * case4.2
+                 * case3.2
                  */
                 rotateLeft(current);
                 rotateRight(current);
@@ -282,7 +281,7 @@ public class RedBlackTree {
                 current.getRight().setColor(Color.RED);
             } else if (current.getParent() == grandPaNode(current).getRight() && current == current.getParent().getLeft()) {
                 /**
-                 * case4.3
+                 * case4.4
                  */
                 rotateRight(current);
                 rotateLeft(current);
@@ -290,7 +289,7 @@ public class RedBlackTree {
                 current.getLeft().setColor(Color.RED);
             } else if (current.getParent() == grandPaNode(current).getRight() && current == current.getParent().getRight()) {
                 /**
-                 * case4.4
+                 * case4.3
                  */
                 current.getParent().setColor(Color.BLACK);
                 grandPaNode(current).setColor(Color.RED);
